@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Animated Stacked Carousel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #111111;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .carousel {
+      position: relative;
+      width: 400px;
+      height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .cards {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .card {
+      position: absolute;
+      width: 100%;
+      height: 300px;
+      background: #a724ff;
+      border-radius: 12px;
+      border: 2px solid #ff6f91;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: white;
+      transform-origin: top center;
+    }
+
+    .controls {
+      margin-top: 30px;
+      display: flex;
+      gap: 20px;
+    }
+
+    button {
+      background: #3c0a4d;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="carousel">
+    <div class="cards">
+      <div class="card">Card 1</div>
+      <div class="card">Card 2</div>
+      <div class="card">Card 3</div>
+      <div class="card">Card 4</div>
+      <div class="card">Card 5</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prev">⬆</button>
+    <button id="next">⬇</button>
+  </div>
+
+  <script>
+    const cards = document.querySelectorAll('.card');
+    const total = cards.length;
+    let startIndex = 0;
+
+    function mod(n, m) {
+      return ((n % m) + m) % m;
+    }
+
+    function updateStack() {
+      cards.forEach((card, i) => {
+        const pos = mod(i - startIndex, total);
+
+        if (pos === 0) {
+          // Top card animation
+          gsap.fromTo(card,
+            { scale: 1.1, opacity: 0 },
+            {
+              scale: 1,
+              opacity: 1,
+              y: 0,
+              zIndex: 3,
+              duration: 0.5,
+              ease: "power3.out"
+            }
+          );
+        } else if (pos < 3) {
+          // 2nd & 3rd cards: stacked with subtle spacing
+          gsap.to(card, {
+            y: pos * 20,
+            scale: 1 - pos * 0.02,
+            opacity: 1,
+            zIndex: 3 - pos,
+            duration: 0.4,
+            ease: "power2.out"
+          });
+        } else {
+          // Instantly hide all other cards
+          gsap.set(card, {
+            opacity: 0,
+            scale: 0.95,
+            y: 0,
+            zIndex: 0
+          });
+        }
+      });
+    }
+
+    document.getElementById('next').addEventListener('click', () => {
+      startIndex = mod(startIndex + 1, total);
+      updateStack();
+    });
+
+    document.getElementById('prev').addEventListener('click', () => {
+      startIndex = mod(startIndex - 1, total);
+      updateStack();
+    });
+
+    updateStack();
+  </script>
+
+</body>
+</html>
