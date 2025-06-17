@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Animated Stacked Carousel</title>
+  <title>Smoother Stacked Carousel</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <style>
     * {
@@ -12,35 +12,79 @@
 
     body {
       margin: 0;
-      background: #111111;
+      background: #000;
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      height: 100dvh;
       overflow: hidden;
     }
 
     .carousel {
       position: relative;
-      width: 400px;
-      height: 500px;
+      width: 670px;
+      height: 400px;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+    }
+
+    .controls {
+      position: absolute;
+      top: -10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      z-index: 10;
+    }
+
+    .dots {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-right: 40px;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 0;
+      background: #666;
+      opacity: 0.4;
+      transition: all 0.3s ease;
+    }
+
+    .dot.active {
+      background: #fff;
+      opacity: 1;
+    }
+
+    button {
+      background: #000;
+      color: white;
+      border: 2px solid #888888;
+      padding: 7px 15px;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.95);
     }
 
     .cards {
       position: relative;
       width: 100%;
-      height: 100%;
+      height: 300px;
     }
 
     .card {
       position: absolute;
-      width: 100%;
+      width: 650px;
       height: 300px;
       background: #a724ff;
       border-radius: 12px;
@@ -51,33 +95,22 @@
       justify-content: center;
       font-size: 2rem;
       color: white;
-      transform-origin: top center;
-    }
-
-    .controls {
-      margin-top: 30px;
-      display: flex;
-      gap: 20px;
-    }
-
-    button {
-      background: #3c0a4d;
-      color: white;
-      border: none;
-      padding: 12px 18px;
-      border-radius: 8px;
-      font-size: 20px;
-      cursor: pointer;
-    }
-
-    button:active {
-      transform: scale(0.95);
+      opacity: 0;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
 
   <div class="carousel">
+    <div class="controls">
+      <div class="dots"></div>
+      <div class="buttons">
+        <button id="prev">ᐱ</button>
+        <button id="next">ᐯ</button>
+      </div>
+    </div>
+
     <div class="cards">
       <div class="card">Card 1</div>
       <div class="card">Card 2</div>
@@ -87,67 +120,94 @@
     </div>
   </div>
 
-  <div class="controls">
-    <button id="prev">⬆</button>
-    <button id="next">⬇</button>
-  </div>
-
   <script>
     const cards = document.querySelectorAll('.card');
     const total = cards.length;
+    const dotsContainer = document.querySelector('.dots');
     let startIndex = 0;
+    let isAnimating = false;
+    let activeAnimations = 0;
+
+    // Create dots
+    cards.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.classList.add('dot');
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = document.querySelectorAll('.dot');
+
+    function updateDots() {
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === startIndex);
+      });
+    }
 
     function mod(n, m) {
       return ((n % m) + m) % m;
     }
 
-    function updateStack() {
+    function updateStack(direction = 1) {
+      if (isAnimating) return;
+      isAnimating = true;
+      activeAnimations = 0;
+
       cards.forEach((card, i) => {
         const pos = mod(i - startIndex, total);
+        const z = 10 - pos;
+        const scale = 1 - pos * 0.05;
+        const y = pos * 20;
+        const visible = pos < 3;
 
-        if (pos === 0) {
-          // Top card animation
-          gsap.fromTo(card,
-            { scale: 1.1, opacity: 0 },
-            {
-              scale: 1,
-              opacity: 1,
-              y: 0,
-              zIndex: 3,
-              duration: 0.5,
-              ease: "power3.out"
+        if (pos === 0 || visible) {
+          activeAnimations++;
+          const tl = gsap.timeline({
+            defaults: { duration: 0.4, ease: 'power2.out' },
+            onComplete: () => {
+              activeAnimations--;
+              if (activeAnimations === 0) isAnimating = false;
             }
-          );
-        } else if (pos < 3) {
-          // 2nd & 3rd cards: stacked with subtle spacing
-          gsap.to(card, {
-            y: pos * 20,
-            scale: 1 - pos * 0.02,
-            opacity: 1,
-            zIndex: 3 - pos,
-            duration: 0.4,
-            ease: "power2.out"
           });
+
+          tl.set(card, { zIndex: z }).to(card, {
+            opacity: pos === 0 ? 1 : 0.6,
+            scale: pos === 0 ? 1 : scale,
+            y: pos === 0 ? 0 : y,
+            pointerEvents: pos === 0 ? 'auto' : 'none'
+          });
+
         } else {
-          // Instantly hide all other cards
-          gsap.set(card, {
+          activeAnimations++;
+          gsap.to(card, {
             opacity: 0,
-            scale: 0.95,
+            scale: 0.8,
             y: 0,
-            zIndex: 0
+            duration: 0.3,
+            zIndex: 0,
+            pointerEvents: 'none',
+            onComplete: () => {
+              activeAnimations--;
+              if (activeAnimations === 0) isAnimating = false;
+            }
           });
         }
       });
+
+      updateDots();
     }
 
     document.getElementById('next').addEventListener('click', () => {
-      startIndex = mod(startIndex + 1, total);
-      updateStack();
+      if (!isAnimating) {
+        startIndex = mod(startIndex + 1, total);
+        updateStack(1);
+      }
     });
 
     document.getElementById('prev').addEventListener('click', () => {
-      startIndex = mod(startIndex - 1, total);
-      updateStack();
+      if (!isAnimating) {
+        startIndex = mod(startIndex - 1, total);
+        updateStack(-1);
+      }
     });
 
     updateStack();
